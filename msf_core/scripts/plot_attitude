@@ -10,4 +10,5 @@ fi
 echo " ### plotting attitude qw qx qy qz [quat] ###"
 echo " ### buffer = " $T "sec"
 
-rxplot msf_core/state_out/data[6]:data[7]:data[8]:data[9] -b $T -t "attitude" -l w,x,y,z 
+rqt_plot msf_core/state_out/data[6]:data[7]:data[8]:data[9]
+#rxplot msf_core/state_out/data[6]:data[7]:data[8]:data[9] -b $T -t "attitude" -l w,x,y,z 

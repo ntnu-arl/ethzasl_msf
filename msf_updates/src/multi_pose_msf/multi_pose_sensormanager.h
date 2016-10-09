@@ -62,14 +62,25 @@ class MultiPoseSensorManager : public msf_core::MSF_SensorManagerROS<
         new msf_core::IMUHandler_ROS<msf_updates::EKFState>(*this, "msf_core",
                                                             "imu_handler"));
 
-    bool distortmeas = false;  ///< Distort the pose measurements
+    //Customization
+    bool pose_distortmeas = false;  ///< Distort the pose measurements
+    pnh.param("pose_distortmeas", pose_distortmeas, false);
+    if (pose_distortmeas)
+      MSF_WARN_STREAM("multi_pose_sensormanager<Constructor>: Using measurement distortion for pose_sensor. Usually this means we just run a test...");
+    //Customization
 
+    //Customization
+    std::string pose_topic_namespace = "pose_sensor";
+    //Customization
     pose_handler_.reset(
-        new PoseSensorHandler_T(*this, "", "pose_sensor", distortmeas));
+        new PoseSensorHandler_T(*this, pose_topic_namespace/*""*/, "pose_sensor", pose_distortmeas));
     AddHandler(pose_handler_);
 
+    //Customization
+    std::string position_topic_namespace = "position_sensor";
+    //Customization
     position_handler_.reset(
-        new PositionSensorHandler_T(*this, "", "position_sensor"));
+        new PositionSensorHandler_T(*this, position_topic_namespace/*""*/, "position_sensor"));
     AddHandler(position_handler_);
 
     reconf_server_.reset(new ReconfigureServer(pnh));

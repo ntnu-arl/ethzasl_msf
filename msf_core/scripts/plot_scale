@@ -10,4 +10,5 @@ fi
 echo " ### plotting scale ###"
 echo " ### buffer = " $T "sec"
 
-rxplot msf_core/state_out/data[16] -b $T -t "scale" -l L 
+rqt_plot msf_core/state_out/data[16]
+#rxplot msf_core/state_out/data[16] -b $T -t "scale" -l L 

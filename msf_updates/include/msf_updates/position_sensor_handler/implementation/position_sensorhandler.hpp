@@ -32,6 +32,11 @@ PositionSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::PositionSensorHandler(
       n_zp_(1e-6),
       delay_(0) {
   ros::NodeHandle pnh("~/position_sensor");
+
+  //Customization
+  MSF_INFO_STREAM("Loading parameters for position sensor from namespace: " << pnh.getNamespace());
+  //Customization
+
   pnh.param("position_use_fixed_covariance", use_fixed_covariance_, false);
   pnh.param("position_absolute_measurements", provides_absolute_measurements_,
             false);
@@ -48,7 +53,10 @@ PositionSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::PositionSensorHandler(
   MSF_INFO_STREAM_COND(!provides_absolute_measurements_, "Position sensor is "
                        "handling measurements as relative values");
 
-  ros::NodeHandle nh("msf_updates");
+  //Customization
+  ros::NodeHandle nh("msf_updates/" + topic_namespace);
+  //ros::NodeHandle nh("msf_updates");
+  //Customization
 
   subPointStamped_ =
       nh.subscribe<geometry_msgs::PointStamped>
