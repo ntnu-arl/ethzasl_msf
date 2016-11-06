@@ -7,7 +7,7 @@
         <!--available options: position_input , transform_input , navsatfix_input (position_sensorhandler.hpp)-->
       	<remap from="msf_updates/pose_sensor/transform_input" to="rovio/transform" />
 	<!--<remap from="msf_updates/position_sensor/position_input" to="rovio/position" />-->
-	<!--<remap from="msf_updates/position_sensor/transform_input" to="vicon/Zed_Picoflexx_Imu_/Zed_Picoflexx_Imu_" />-->
+	<remap from="msf_updates/position_sensor/transform_input" to="vicon/Zed_Picoflexx_Imu_/Zed_Picoflexx_Imu_" />
         <rosparam file="$(find msf_updates)/multi_pose_sensor_fix.yaml"/>
     </node>
 
