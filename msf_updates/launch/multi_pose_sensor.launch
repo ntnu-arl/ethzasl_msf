@@ -1,0 +1,16 @@
+<!-- Launch me -->
+<launch>
+  
+    <node name="mav_pose_sensor_rovio" pkg="msf_updates" type="multi_pose_sensor" respawn="true" output="log">
+        <remap from="msf_core/imu_state_input" to="mavros/imu/data" /> <!-- "mavros/imu/data" OR "imu0_throttle" UNTIL PIXHAWK BECOMES RELIABLE -->
+      	<!--<remap from="msf_updates/transform_input" to="rovio/transform" />-->
+        <!--available options: position_input , transform_input , navsatfix_input (position_sensorhandler.hpp)-->
+      	<remap from="msf_updates/pose_sensor/transform_input" to="rovio/transform" />
+	<!--<remap from="msf_updates/position_sensor/position_input" to="rovio/position" />-->
+	<!--<remap from="msf_updates/position_sensor/transform_input" to="vicon/Zed_Picoflexx_Imu_/Zed_Picoflexx_Imu_" />-->
+        <rosparam file="$(find msf_updates)/multi_pose_sensor_fix.yaml"/>
+    </node>
+
+    <node name="mav_pose_sensor_rovio_initialize_service" pkg="rosservice" type="rosservice" args="call --wait mav_pose_sensor_rovio/multi_pose_sensor/initialize_msf_scale 1.0"/>
+
+</launch>
