@@ -10,6 +10,6 @@
 
     <node pkg="rosservice" type="rosservice" name="initialize"
        args="call --wait /msf_pose_sensor/pose_sensor/initialize_msf_scale 1"
-       launch-prefix="bash -c 'sleep 7; $0 $@'" />
+       launch-prefix="bash -c 'sleep 3; $0 $@'" />
     
 </launch>
