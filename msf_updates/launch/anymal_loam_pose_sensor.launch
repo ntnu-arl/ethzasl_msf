@@ -1,5 +1,5 @@
 <launch>
-  <-- Args -->
+  <!-- Args -->
   <arg name="msf_rosparam_file"/>
 
   <node name="msf_pose_sensor" pkg="msf_updates" type="pose_sensor" clear_params="true" output="screen">
