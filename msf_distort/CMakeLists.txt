@@ -11,7 +11,7 @@ set(CMAKE_BUILD_TYPE RelWithDebInfo)
 #build with boost 1.6x
 add_definitions(-DBOOST_NO_CXX11_VARIADIC_TEMPLATES)
 
-find_package(catkin REQUIRED COMPONENTS msf_core std_msgs visualization_msgs sensor_msgs image_transport image_geometry geometry_msgs dynamic_reconfigure)
+find_package(catkin REQUIRED COMPONENTS msf_core std_msgs visualization_msgs sensor_msgs image_transport image_geometry_customized geometry_msgs dynamic_reconfigure)
 
 include_directories(${catkin_INCLUDE_DIRS})
 
@@ -19,7 +19,7 @@ generate_dynamic_reconfigure_options(cfg/MSF_Distort.cfg)
 
 catkin_package(
     DEPENDS
-    CATKIN_DEPENDS msf_core std_msgs visualization_msgs sensor_msgs image_transport image_geometry geometry_msgs dynamic_reconfigure
+    CATKIN_DEPENDS msf_core std_msgs visualization_msgs sensor_msgs image_transport image_geometry_customized geometry_msgs dynamic_reconfigure
     INCLUDE_DIRS ${catkin_INCLUDE_DIRS}
     LIBRARIES
 )
