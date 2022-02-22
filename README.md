@@ -15,3 +15,9 @@ http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml
 
 ## License
 The source code is released under the Apache 2.0 license
+
+# Missing deps:
+
+fatal error: glog/logging.h: No such file or directory
+
+`sudo apt install libgoogle-glog-dev`
