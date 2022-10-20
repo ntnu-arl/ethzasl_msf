@@ -63,6 +63,7 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
   ros::Publisher pubState_;  ///< Publishes all states of the filter.
   ros::Publisher pubPose_;  ///< Publishes 6DoF pose output.
   ros::Publisher pubOdometry_;  ///< Publishes odometry output.
+  ros::Publisher pubOdometryVN100_; ///< Publishes odometry output for VN100.
   ros::Publisher pubMaplabOdometry_;  ///< Publishes odometry output.
   ros::Publisher pubPoseAfterUpdate_;  ///< Publishes 6DoF pose output after the update has been applied.
   ros::Publisher pubPoseCrtl_;  ///< Publishes 6DoF pose including velocity output.
@@ -97,6 +98,7 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
     pubPose_ = nh.advertise < geometry_msgs::PoseWithCovarianceStamped
         > ("pose", 100);
     pubOdometry_ = nh.advertise < nav_msgs::Odometry> ("odometry", 100);
+    pubOdometryVN100_ = nh.advertise < nav_msgs::Odometry> ("VN100_odometry", 100);
     pubPoseAfterUpdate_ = nh.advertise
         < geometry_msgs::PoseWithCovarianceStamped > ("pose_after_update", 100);
     pubPoseCrtl_ = nh.advertise < sensor_fusion_comm::ExtState
@@ -212,20 +214,71 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
       msgPose.header.frame_id = msf_output_frame_;
       state->ToPoseMsg(msgPose);
       pubPose_.publish(msgPose);
-
+      sensor_fusion_comm::ExtState msgPoseCtrl;
+      msgPoseCtrl.header = msgPose.header;
+      state->ToExtStateMsg(msgPoseCtrl);
+      pubPoseCrtl_.publish(msgPoseCtrl);
 
       nav_msgs::Odometry msgOdometry;
       msgOdometry.header.stamp = ros::Time(state->time);
       msgOdometry.header.seq = msg_seq++;
       msgOdometry.header.frame_id = msf_output_frame_;
-      msgOdometry.child_frame_id = "imu";
+      msgOdometry.child_frame_id = "vn100_imu";
       state->ToOdometryMsg(msgOdometry);
-      pubOdometry_.publish(msgOdometry);
+      pubOdometryVN100_.publish(msgOdometry);
 
-      sensor_fusion_comm::ExtState msgPoseCtrl;
-      msgPoseCtrl.header = msgPose.header;
-      state->ToExtStateMsg(msgPoseCtrl);
-      pubPoseCrtl_.publish(msgPoseCtrl);
+      /* TODO: */
+      msf_core::Vector3 P_vn_px4(0.00376, 0.05, -0.0416);
+      msf_core::Matrix3 R_vn_px4 = Eigen::Matrix3d::Identity();
+
+      msf_core::Matrix4 T_vn_px4 = Eigen::Matrix4d::Identity();
+      T_vn_px4.block<3,3>(0,0) = R_vn_px4;
+      T_vn_px4.block<3,1>(0,3) = P_vn_px4;
+
+      tf::Transform transform;
+      const EKFState_T& state_const = *state;
+      const Eigen::Matrix<double, 3, 1>& state_pos = state_const
+          .template Get<StateDefinition_T::p>();
+      const Eigen::Quaterniond& state_ori = state_const
+          .template Get<StateDefinition_T::q>();
+      
+      msf_core::Matrix4 T_world_vn;
+      T_world_vn.col(3) << state_pos, 1.0;
+
+      msf_core::Quaternion q_w_vn = state_ori;
+      msf_core::Matrix3 rot_mat = q_w_vn.toRotationMatrix();
+      T_world_vn.block<3,3>(0,0) = rot_mat;
+
+      msf_core::Vector3 v_vn_vn;
+      v_vn_vn << msgOdometry.twist.twist.linear.x, msgOdometry.twist.twist.linear.y, msgOdometry.twist.twist.linear.z;
+
+      msf_core::Vector3 w_vn_vn;
+      w_vn_vn << msgOdometry.twist.twist.angular.x, msgOdometry.twist.twist.angular.y, msgOdometry.twist.twist.angular.z;
+
+      msf_core::Matrix4 T_world_px4 = T_world_vn * T_vn_px4;
+
+      msf_core::Vector3 p_w_px4 = T_world_px4.block<3, 1>(0,3);
+      msf_core::Quaternion q_w_px4(T_world_px4.block<3,3>(0,0));
+
+      msf_core::Vector3 v_px4_vn = v_vn_vn + w_vn_vn.cross(P_vn_px4);
+      msf_core::Vector3 v_px4_px4 = R_vn_px4.inverse() * v_px4_vn;
+      msf_core::Vector3 w_px4_px4 = R_vn_px4.inverse() * w_vn_vn;
+
+
+      nav_msgs::Odometry msgOdometryPX4Eagle;
+      msgOdometryPX4Eagle.header.stamp = ros::Time(state->time);
+      msgOdometryPX4Eagle.header.seq = msg_seq;
+      msgOdometryPX4Eagle.header.frame_id = msf_output_frame_;
+      msgOdometryPX4Eagle.child_frame_id = "imu";
+      eigen_conversions::Vector3dToPoint(p_w_px4, msgOdometryPX4Eagle.pose.pose.position);
+      eigen_conversions::Vector3dToPoint(v_px4_px4, msgOdometryPX4Eagle.twist.twist.linear);
+      eigen_conversions::Vector3dToPoint(w_px4_px4, msgOdometryPX4Eagle.twist.twist.angular);
+
+      eigen_conversions::QuaternionToMsg(q_w_px4, msgOdometryPX4Eagle.pose.pose.orientation);
+      msgOdometryPX4Eagle.pose.covariance = msgOdometry.pose.covariance;
+      msgOdometryPX4Eagle.twist.covariance = msgOdometry.twist.covariance;
+
+      pubOdometry_.publish(msgOdometryPX4Eagle);
 
     }
   }
@@ -347,7 +400,7 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
       tf_broadcaster_.sendTransform(
           tf::StampedTransform(
               transform, ros::Time::now() /*ros::Time(latestState->time_)*/,
-              msf_output_frame_, "state"));
+              msf_output_frame_, "vn100_state"));
     }
 
     if (pubCovCore_.getNumSubscribers()) {

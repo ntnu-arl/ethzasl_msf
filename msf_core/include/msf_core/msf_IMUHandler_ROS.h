@@ -18,6 +18,7 @@
 #define MSF_IMUHANDLER_ROS_H_
 
 #include <msf_core/msf_IMUHandler.h>
+#include <vector>
 
 namespace msf_core {
 
@@ -26,6 +27,11 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
   ros::Subscriber subState_;  ///< subscriber to external state propagation
   ros::Subscriber subImu_;  ///< subscriber to IMU readings
   ros::Subscriber subImuCustom_;  ///< subscriber to IMU readings for asctec custom
+
+  ros::Publisher filtered_imu_pub_;
+
+  std::vector<msf_core::Vector3> acc_buffer_, gyro_buffer_;
+  int buffer_size_ = 16;
 
  public:
   IMUHandler_ROS(MSF_SensorManager<EKFState_T>& mng,
@@ -39,6 +45,7 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
                            this);
     subState_ = nh.subscribe("hl_state_input", 10,
                              &IMUHandler_ROS::StateCallback, this);
+    filtered_imu_pub_ = nh.advertise < sensor_msgs::Imu> ("msf_filtered_imu", 100);
   }
 
   virtual ~IMUHandler_ROS() { }
@@ -103,9 +110,44 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
     linacc << msg->linear_acceleration.x, msg->linear_acceleration.y, msg
         ->linear_acceleration.z;
 
+    this->acc_buffer_.push_back(linacc);
+    if(this->acc_buffer_.size() > this->buffer_size_) {
+      this->acc_buffer_.erase(this->acc_buffer_.begin());
+    }
+
+    msf_core::Vector3 mean_acc = msf_core::Vector3(0.0, 0.0, 0.0);
+    for(int i=0; i<this->acc_buffer_.size(); ++i) {
+      mean_acc += this->acc_buffer_[i];
+    }
+    mean_acc /= this->acc_buffer_.size();
+    linacc = mean_acc;
+
     msf_core::Vector3 angvel;
     angvel << msg->angular_velocity.x, msg->angular_velocity.y, msg
         ->angular_velocity.z;
+    
+    this->gyro_buffer_.push_back(angvel);
+    if(this->gyro_buffer_.size() > this->buffer_size_) {
+      this->gyro_buffer_.erase(this->gyro_buffer_.begin());
+    }
+
+    msf_core::Vector3 mean_gyro = msf_core::Vector3(0.0, 0.0, 0.0);
+    for(int i=0; i<this->gyro_buffer_.size(); ++i) {
+      mean_gyro += this->gyro_buffer_[i];
+    }
+    mean_gyro /= this->gyro_buffer_.size();
+    angvel = mean_gyro;
+
+    sensor_msgs::Imu filtered_imu;
+    filtered_imu = *msg;
+    filtered_imu.linear_acceleration.x = linacc.x();
+    filtered_imu.linear_acceleration.y = linacc.y();
+    filtered_imu.linear_acceleration.z = linacc.z();
+    filtered_imu.angular_velocity.x = angvel.x();
+    filtered_imu.angular_velocity.y = angvel.y();
+    filtered_imu.angular_velocity.z = angvel.z();
+
+    filtered_imu_pub_.publish(filtered_imu);    
 
     this->ProcessIMU(linacc, angvel, msg->header.stamp.toSec(),
                       msg->header.seq);
