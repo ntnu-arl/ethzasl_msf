@@ -46,6 +46,14 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
     subState_ = nh.subscribe("hl_state_input", 10,
                              &IMUHandler_ROS::StateCallback, this);
     filtered_imu_pub_ = nh.advertise < sensor_msgs::Imu> ("msf_filtered_imu", 100);
+
+    if(!ros::param::get("/msf/filter_window", buffer_size_)) {
+      buffer_size_ = 16;
+      std::cout << "---------- PARAM NOT SET: Buffer size set to: " << buffer_size_ << "-------------" << std::endl;
+    }
+    else {
+      std::cout << "---------- Buffer size set to: " << buffer_size_ << "-------------" << std::endl;
+    }
   }
 
   virtual ~IMUHandler_ROS() { }

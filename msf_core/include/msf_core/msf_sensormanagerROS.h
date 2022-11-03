@@ -76,6 +76,9 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
 
   mutable tf::TransformBroadcaster tf_broadcaster_;
 
+  Eigen::Vector3d vn100_px4_pos_;
+  Eigen::Quaterniond vn100_px4_quat_;
+
   sensor_fusion_comm::ExtEkf hl_state_buf_;  ///< Buffer to store external propagation data.
 
  public:
@@ -89,6 +92,35 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
 
     pnh.param("data_playback", this->data_playback_, false);
     pnh.param("msf_output_frame", msf_output_frame_, std::string("world"));
+    std::vector<double> vn100_px4_pos, vn100_px4_quat;
+    std::vector<double> vn100_px4_pos_def = {0.00376, 0.05, -0.0416}, vn100_px4_quat_def = {0.0, 0.0, 0.0, 1.0};
+    if(pnh.param("vn100_px4_tf/translation", vn100_px4_pos, vn100_px4_pos_def) && vn100_px4_pos.size() == 3) {
+      vn100_px4_pos_ << vn100_px4_pos[0], vn100_px4_pos[1], vn100_px4_pos[2];
+      std::cout << "---------------- vn100 px4 trans: " << vn100_px4_pos_.transpose() << "-----------" << std::endl;
+    }
+    else {
+      vn100_px4_pos_ << vn100_px4_quat_def[0], vn100_px4_quat_def[1], vn100_px4_quat_def[2];
+      std::cout << "---------------- NOT FOUND vn100 px4 trans: " << vn100_px4_pos_.transpose() << "-----------" << std::endl;
+    }
+    // pnh.param("vn100_px4_tf/rotation", vn100_px4_quat, vn100_px4_quat_def);
+    if(pnh.param("vn100_px4_tf/rotation", vn100_px4_quat, vn100_px4_quat_def) && vn100_px4_quat.size() == 4) {
+      // vn100_px4_quat_(vn100_px4_quat[3], vn100_px4_quat[0], vn100_px4_quat[1], vn100_px4_quat[2]);
+      vn100_px4_quat_.x() = vn100_px4_quat[0];
+      vn100_px4_quat_.y() = vn100_px4_quat[1];
+      vn100_px4_quat_.z() = vn100_px4_quat[2];
+      vn100_px4_quat_.w() = vn100_px4_quat[3];
+      std::cout << "---------------- vn100 px4 rot: " << vn100_px4_quat_.x() << ", " << vn100_px4_quat_.y() << ", " << vn100_px4_quat_.z() << ", " << vn100_px4_quat_.w() << "-----------" << std::endl;
+    }
+    else {
+      // vn100_px4_quat_(vn100_px4_quat_def[3], vn100_px4_quat_def[0], vn100_px4_quat_def[1], vn100_px4_quat_def[2]);
+      vn100_px4_quat_.x() = vn100_px4_quat_def[0];
+      vn100_px4_quat_.y() = vn100_px4_quat_def[1];
+      vn100_px4_quat_.z() = vn100_px4_quat_def[2];
+      vn100_px4_quat_.w() = vn100_px4_quat_def[3];
+      std::cout << "---------------- NOT FOUND vn100 px4 rot: " << vn100_px4_quat_.x() << ", " << vn100_px4_quat_.y() << ", " << vn100_px4_quat_.z() << ", " << vn100_px4_quat_.w() << "-----------" << std::endl;
+    }
+
+
 
     ros::NodeHandle nh("msf_core");
 
@@ -228,8 +260,14 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
       pubOdometryVN100_.publish(msgOdometry);
 
       /* TODO: */
-      msf_core::Vector3 P_vn_px4(0.00376, 0.05, -0.0416);
-      msf_core::Matrix3 R_vn_px4 = Eigen::Matrix3d::Identity();
+      // msf_core::Vector3 P_vn_px4(0.00376, 0.05, -0.0416);
+      // msf_core::Matrix3 R_vn_px4 = Eigen::Matrix3d::Identity();
+      msf_core::Vector3 P_vn_px4(vn100_px4_pos_(0), vn100_px4_pos_(1), vn100_px4_pos_(2));
+      msf_core::Matrix3 R_vn_px4 = vn100_px4_quat_.toRotationMatrix();
+
+      // std::cout << "In the function: " << std::endl;
+      // std::cout << P_vn_px4.transpose() << std::endl;
+      // std::cout << R_vn_px4 << std::endl;
 
       msf_core::Matrix4 T_vn_px4 = Eigen::Matrix4d::Identity();
       T_vn_px4.block<3,3>(0,0) = R_vn_px4;
