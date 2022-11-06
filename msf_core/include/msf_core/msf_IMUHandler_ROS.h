@@ -112,7 +112,7 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
     auto t1 = std::chrono::high_resolution_clock::now();
     auto t2 = t1;
     static int lastseq = constants::INVALID_SEQUENCE;
-    if (static_cast<int>(msg->header.seq) != lastseq + 1
+    if (static_cast<int>(msg->header.seq) < lastseq + 1
         && lastseq != constants::INVALID_SEQUENCE) {
       MSF_WARN_STREAM(
           "msf_core: imu message drop curr seq:" << msg->header.seq
