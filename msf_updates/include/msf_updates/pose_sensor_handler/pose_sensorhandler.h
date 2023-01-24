@@ -41,6 +41,7 @@ class PoseSensorHandler : public msf_core::SensorHandler<
   ros::Subscriber subPoseWithCovarianceStamped_;
   ros::Subscriber subTransformStamped_;
   ros::Subscriber subPoseStamped_;
+  ros::Publisher pose_cb_time_pub_;
 
   bool measurement_world_sensor_;  ///< Defines if the pose of the sensor is
                                    // measured in world coordinates (true, default)

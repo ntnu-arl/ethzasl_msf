@@ -75,7 +75,7 @@ PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::PoseSensorHandler(
   subPoseStamped_ = nh.subscribe < geometry_msgs::PoseStamped
       > ("pose_input", 20, &PoseSensorHandler::MeasurementCallback, this);
   
-  ros::Publisher pose_cb_time_pub_ = nh.advertise <std_msgs::Float32> ("msf_pose_cb_time", 100);
+  pose_cb_time_pub_ = nh.advertise <std_msgs::Float32> ("msf_pose_cb_time", 100);
 
   z_p_.setZero();
   z_q_.setIdentity();
