@@ -20,6 +20,8 @@
 #include <msf_core/msf_IMUHandler.h>
 #include <vector>
 
+#include <std_msgs/Float32.h>
+
 namespace msf_core {
 
 template<typename EKFState_T>
@@ -29,6 +31,7 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
   ros::Subscriber subImuCustom_;  ///< subscriber to IMU readings for asctec custom
 
   ros::Publisher filtered_imu_pub_;
+  ros::Publisher imu_cb_time_pub_;
 
   std::vector<msf_core::Vector3> acc_buffer_, gyro_buffer_;
   int buffer_size_ = 16;
@@ -46,6 +49,7 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
     subState_ = nh.subscribe("hl_state_input", 10,
                              &IMUHandler_ROS::StateCallback, this);
     filtered_imu_pub_ = nh.advertise < sensor_msgs::Imu> ("msf_filtered_imu", 100);
+    imu_cb_time_pub_ = nh.advertise <std_msgs::Float32> ("msf_imu_cb_time", 100);
 
     if(!ros::param::get("/msf/filter_window", buffer_size_)) {
       buffer_size_ = 16;
@@ -105,6 +109,8 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
   }
 
   void IMUCallback(const sensor_msgs::ImuConstPtr & msg) {
+    auto t1 = std::chrono::high_resolution_clock::now();
+    auto t2 = t1;
     static int lastseq = constants::INVALID_SEQUENCE;
     if (static_cast<int>(msg->header.seq) != lastseq + 1
         && lastseq != constants::INVALID_SEQUENCE) {
@@ -159,6 +165,10 @@ class IMUHandler_ROS : public IMUHandler<EKFState_T> {
 
     this->ProcessIMU(linacc, angvel, msg->header.stamp.toSec(),
                       msg->header.seq);
+    t2 = std::chrono::high_resolution_clock::now();
+    std_msgs::Float32 imu_cb_time;
+    imu_cb_time.data = std::chrono::duration<double, std::milli>(t2 - t1).count();
+    imu_cb_time_pub_.publish(imu_cb_time);
   }
 
   virtual bool Initialize() {

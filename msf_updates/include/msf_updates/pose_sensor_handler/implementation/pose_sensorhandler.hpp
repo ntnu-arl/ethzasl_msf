@@ -187,6 +187,8 @@ void PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::MeasurementCallback(
 template<typename MEASUREMENT_TYPE, typename MANAGER_TYPE>
 void PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::MeasurementCallback(
     const geometry_msgs::TransformStampedConstPtr & msg) {
+  auto t1 = std::chrono::high_resolution_clock::now();
+  auto t2 = t1;
   this->SequenceWatchDog(msg->header.seq, subTransformStamped_.getTopic());
   MSF_INFO_STREAM_ONCE(
       "*** pose sensor got first measurement from topic "
@@ -229,6 +231,11 @@ void PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::MeasurementCallback(
   pose->pose.pose.orientation.z = msg->transform.rotation.z;
 
   ProcessPoseMeasurement(pose);
+
+  t2 = std::chrono::high_resolution_clock::now();
+
+  std_msgs::Float32 pose_cb_time;
+  pose_cb_time.data = std::chrono::duration<double, std::milli>(t2 - t1).count();
 }
 
 template<typename MEASUREMENT_TYPE, typename MANAGER_TYPE>
