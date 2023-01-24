@@ -74,6 +74,8 @@ PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::PoseSensorHandler(
       > ("transform_input", 20, &PoseSensorHandler::MeasurementCallback, this);
   subPoseStamped_ = nh.subscribe < geometry_msgs::PoseStamped
       > ("pose_input", 20, &PoseSensorHandler::MeasurementCallback, this);
+  
+  ros::Publisher pose_cb_time_pub_ = nh.advertise <std_msgs::Float32> ("msf_pose_cb_time", 100);
 
   z_p_.setZero();
   z_q_.setIdentity();
@@ -236,6 +238,7 @@ void PoseSensorHandler<MEASUREMENT_TYPE, MANAGER_TYPE>::MeasurementCallback(
 
   std_msgs::Float32 pose_cb_time;
   pose_cb_time.data = std::chrono::duration<double, std::milli>(t2 - t1).count();
+  pose_cb_time_pub_.publish(pose_cb_time);
 }
 
 template<typename MEASUREMENT_TYPE, typename MANAGER_TYPE>
