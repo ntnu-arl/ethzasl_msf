@@ -240,17 +240,6 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
         || pubMaplabOdometry_.getNumSubscribers()) {
       static int msg_seq = 0;
 
-      geometry_msgs::PoseWithCovarianceStamped msgPose;
-      msgPose.header.stamp = ros::Time(state->time);
-      msgPose.header.seq = msg_seq++;
-      msgPose.header.frame_id = msf_output_frame_;
-      state->ToPoseMsg(msgPose);
-      pubPose_.publish(msgPose);
-      sensor_fusion_comm::ExtState msgPoseCtrl;
-      msgPoseCtrl.header = msgPose.header;
-      state->ToExtStateMsg(msgPoseCtrl);
-      pubPoseCrtl_.publish(msgPoseCtrl);
-
       nav_msgs::Odometry msgOdometry;
       msgOdometry.header.stamp = ros::Time(state->time);
       msgOdometry.header.seq = msg_seq++;
@@ -318,6 +307,17 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
 
       pubOdometry_.publish(msgOdometryPX4Eagle);
 
+      geometry_msgs::PoseWithCovarianceStamped msgPose;
+      msgPose.header.stamp = ros::Time(state->time);
+      msgPose.header.seq = msg_seq++;
+      msgPose.header.frame_id = msf_output_frame_;
+      msgPose.pose = msgOdometryPX4Eagle.pose;
+      // state->ToPoseMsg(msgPose);
+      pubPose_.publish(msgPose);
+      sensor_fusion_comm::ExtState msgPoseCtrl;
+      msgPoseCtrl.header = msgPose.header;
+      state->ToExtStateMsg(msgPoseCtrl);
+      pubPoseCrtl_.publish(msgPoseCtrl);
     }
   }
 
