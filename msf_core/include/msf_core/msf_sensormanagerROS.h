@@ -268,6 +268,15 @@ struct MSF_SensorManagerROS : public msf_core::MSF_SensorManager<EKFState_T> {
           .template Get<StateDefinition_T::p>();
       const Eigen::Quaterniond& state_ori = state_const
           .template Get<StateDefinition_T::q>();
+    {
+      transform.setOrigin(tf::Vector3(state_pos[0], state_pos[1], state_pos[2]));
+      transform.setRotation(tf::Quaternion(state_ori.x(), state_ori.y(), state_ori.z(), state_ori.w()));
+      tf_broadcaster_.sendTransform(
+          tf::StampedTransform(
+              transform, ros::Time(state->time),
+              msf_output_frame_, "vn100_state_propogated"));
+    }
+
       
       msf_core::Matrix4 T_world_vn;
       T_world_vn.col(3) << state_pos, 1.0;
