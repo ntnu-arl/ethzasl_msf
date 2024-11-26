@@ -124,13 +124,14 @@ void MSF_Core<EKFState_T>::ProcessIMU(
   // Check if this IMU message is really after the last one (caused by restarting
   // a bag file).
   if (currentState->time - lastState->time < -0.01 && predictionMade_) {
-    initialized_ = false;
-    predictionMade_ = false;
+    // initialized_ = false;
+    // predictionMade_ = false;
+    currentState->time = ros::Time::now().toSec();
     MSF_ERROR_STREAM(
         __FUNCTION__<<"latest IMU message was out of order by a too large amount, "
         "resetting EKF: last-state-time: " << msf_core::timehuman(lastState->time)
         << " "<< "current-imu-time: "<< msf_core::timehuman(currentState->time));
-    return;
+    // return;
   }
 
   static int seq = 0;
